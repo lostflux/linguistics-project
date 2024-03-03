@@ -1,0 +1,2 @@
+# everything in data/ is LFS
+data filter=lfs diff=lfs merge=lfs -text
