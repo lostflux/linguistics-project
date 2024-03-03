@@ -96,6 +96,9 @@ class AudioEmotionsDataset:
         self.waveforms_test, self.X_test, self.y_test = self.shuffle_datapoints(waveforms_test, X_test, y_test)
     
     def extract_features(self, file: str):
+        """
+            Loads audio from a given file path and extracts features using the Wav2Vec2 model.
+        """
         
         # NOTE: Wav2Vec2 was trained with a sampling rate of 16kHz,
         # so we need to resample the audio files to 16kHz.
@@ -108,12 +111,25 @@ class AudioEmotionsDataset:
         return waveform, features
     
     def shuffle_datapoints(self, waveforms, X, y):
+        """
+            Shuffles the data points uniformly.
+        """
         zipped = list(zip(waveforms, X, y))
         random.shuffle(zipped)
         waveforms, X, y = zip(*zipped)
         return waveforms, X, y
     
     def transcribe(self, features):
+        """
+            (Useful for testing)
+            Generate a transcription from `Wav2Vec2` features.
+            
+            Returns
+            -------
+            - word_offsets: list of dicts for each word with start and end times
+            - transcription: the transcription of the audio
+        """
+        
         input_values = features # torch.tensor(features)
         logits = self.model(input_values).logits[0]
         predicted_ids = torch.argmax(logits, dim=-1)
@@ -133,22 +149,48 @@ class AudioEmotionsDataset:
         return word_offsets, transcription
     
     def one_hot_encode(self, y):
+        """
+            One-hot encode a single datapoint.
+            (Maybe do this all at once for the entire dataset?)
+        """
         return F.one_hot(torch.tensor(y), num_classes=len(self.class_map))
 
     def len_train(self):
+        """
+            Get the length of the training split of the dataset.
+        """
         return len(self.y_train)
     
     def len_test(self):
+        """
+            get the length of the testing split of the dataset.
+        """
         return len(self.y_test)
     
     def get_train(self, idx):
+        """
+            Get a single training datapoint.
+            
+            if iterating, try accessing `dataset.X_train` and `dataset.y_train` directly.
+        """
         return self.waveforms_train[idx], self.X_train[idx], self.y_train[idx]
     
     def get_test(self, idx):
+        """
+            Get a single testing datapoint.
+            
+            If iterating, try accessing `dataset.X_test` and `dataset.y_test` directly.
+        """
         return self.waveforms_test[idx], self.X_test[idx], self.y_test[idx]
     
     def label_to_num(self, emotion):
+        """
+            Encode a label (e.g. "angry") to a numerical value (e.g. 0)
+        """
         return self.class_map_inv[emotion]
     
     def num_to_label(self, emotion):
+        """
+            Decode a numerical value (e.g. 0) to a label (e.g. "angry")
+        """
         return self.class_map[emotion]
