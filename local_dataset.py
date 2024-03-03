@@ -26,9 +26,11 @@ class AudioEmotionsDataset:
         
         # if path does not exist, download the dataset and extract
         if not os.path.exists(self.data_path):
-            os.system("wget https://www.kaggle.com/datasets/uldisvalainis/audio-emotions/download?datasetVersionNumber=1")
-            os.system("unzip Audio_Speech_Actors_01-24.zip -d data")
-            os.system("rm Audio_Speech_Actors_01-24.zip")
+            raise Exception(f"""
+                Dataset path not found at {self.data_path}.
+                Please download the dataset from https://www.kaggle.com/uldisvalainis/audio-emotions
+                and save it in the relevant path.
+                """)
         
         metadata = {
             "angry": sorted(glob(f"{self.data_path}/Angry/*.wav")),
@@ -68,6 +70,8 @@ class AudioEmotionsDataset:
                 test_meta[emotion] = test_meta[emotion][:max_size]
         
         waveforms_train, X_train, y_train = [], [], []
+        
+        # NOTE: changing the class map here will change the numerical values for the classes.
         self.class_map = {0: "angry", 1: "sad", 2: "disgusted", 3: "fearful", 4: "happy", 5: "neutral", 6: "surprised"}
         self.class_map_inv = {v: k for k, v in self.class_map.items()}
         
