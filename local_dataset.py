@@ -8,7 +8,7 @@ from transformers import AutoTokenizer, AutoFeatureExtractor, AutoModelForCTC, W
 import torchaudio
 import soundfile as sf
 import librosa
-import torch.functional as F
+import torch.nn.functional as F
 import torch.nn as nn
 from IPython.display import Audio, display, Markdown
 import torch
@@ -17,7 +17,7 @@ import pandas as pd
 import random
 
 class AudioEmotionsDataset:
-    def __init__(self, data_path=None, train_split=0.8):
+    def __init__(self, data_path=None, train_split=0.8, max_size=None):
         self.feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base-960h")
         self.model = AutoModelForCTC.from_pretrained("facebook/wav2vec2-base-960h")
         self.tokenizer = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
@@ -59,6 +59,13 @@ class AudioEmotionsDataset:
             "neutral": metadata["neutral"][int(self.train_split * len(metadata["neutral"])):],
             "surprised": metadata["surprised"][int(self.train_split * len(metadata["surprised"])):],
         }
+        
+        # limit to size
+        if max_size is not None:
+            for emotion in train_meta:
+                train_meta[emotion] = train_meta[emotion][:max_size]
+            for emotion in test_meta:
+                test_meta[emotion] = test_meta[emotion][:max_size]
         
         waveforms_train, X_train, y_train = [], [], []
         self.class_map = {0: "angry", 1: "sad", 2: "disgusted", 3: "fearful", 4: "happy", 5: "neutral", 6: "surprised"}
@@ -121,6 +128,9 @@ class AudioEmotionsDataset:
         transcription = " ".join([ item['word'] for item in word_offsets])
 
         return word_offsets, transcription
+    
+    def one_hot_encode(self, y):
+        return F.one_hot(torch.tensor(y), num_classes=len(self.class_map))
 
     def len_train(self):
         return len(self.y_train)
