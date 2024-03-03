@@ -1,2 +1,5 @@
 # everything in data/ is LFS
 data filter=lfs diff=lfs merge=lfs -text
+
+# all wav files are LFS
+*.wav filter=lfs diff=lfs merge=lfs -text
