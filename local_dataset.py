@@ -83,7 +83,8 @@ class AudioEmotionsDataset():
                 waveforms_train.append(waveform)
                 X_train.append(features)
                 
-            y_train += [self.class_map_inv[emotion]] * len(train_meta[emotion])
+            # y_train += [self.class_map_inv[emotion]] * len(train_meta[emotion])
+            y_train += [self.one_hot_encode(self.class_map_inv[emotion])] * len(train_meta[emotion])
             
         waveforms_test, X_test, y_test = [], [], []
         for emotion in test_meta:
@@ -92,7 +93,7 @@ class AudioEmotionsDataset():
                 waveforms_test.append(waveform)
                 X_test.append(features)
                 
-            y_test += [self.class_map_inv[emotion]] * len(test_meta[emotion])
+            y_test += [self.one_hot_encode(self.class_map_inv[emotion])] * len(test_meta[emotion])
             
         # ZERO-PADDING
         # pad the features to the same length
@@ -104,8 +105,8 @@ class AudioEmotionsDataset():
             X_train[i] = m(X_train[i])
             
         # shuffle uniformly
-        # self.waveforms_train, self.X_train, self.y_train = self.shuffle_datapoints(waveforms_train, X_train, y_train)
-        # self.waveforms_test, self.X_test, self.y_test = self.shuffle_datapoints(waveforms_test, X_test, y_test)
+        self.waveforms_train, self.X_train, self.y_train = waveforms_train, X_train, y_train
+        self.waveforms_test, self.X_test, self.y_test = waveforms_test, X_test, y_test
         
         # zip train x and y
         zipped_train = list(zip(self.X_train, self.y_train))
@@ -113,6 +114,20 @@ class AudioEmotionsDataset():
         
         self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True)
         self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True)
+        
+    @property
+    def feature_count(self):
+        """
+            Get the number of features in the dataset.
+        """
+        return self.X_train[0].shape[1]
+    
+    @property
+    def class_count(self):
+        """
+            Get the number of classes in the dataset.
+        """
+        return len(self.class_map)
     
     def extract_features(self, file: str):
         """
