@@ -11,12 +11,15 @@ import torchaudio
 import torch.nn.functional as F
 import librosa
 
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
 from transformers import AutoTokenizer, AutoFeatureExtractor, AutoModelForCTC, Wav2Vec2Processor
 
 from IPython.display import Audio, display, Markdown
 
-class AudioEmotionsDataset:
-    def __init__(self, data_path=None, train_split=0.8, max_size=None):
+class AudioEmotionsDataset():
+    def __init__(self, data_path=None, train_split=0.8, batch_size=64, max_size=None):
         self.feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base-960h")
         self.model = AutoModelForCTC.from_pretrained("facebook/wav2vec2-base-960h")
         self.tokenizer = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
@@ -91,9 +94,25 @@ class AudioEmotionsDataset:
                 
             y_test += [self.class_map_inv[emotion]] * len(test_meta[emotion])
             
+        # ZERO-PADDING
+        # pad the features to the same length
+        max_len = max([x.shape[1] for x in X_train + X_test])
+        print(f"{max_len = }")
+        
+        for i in range(len(X_train)):
+            m = nn.ZeroPad2d((0, max_len - X_train[i].shape[1]))
+            X_train[i] = m(X_train[i])
+            
         # shuffle uniformly
-        self.waveforms_train, self.X_train, self.y_train = self.shuffle_datapoints(waveforms_train, X_train, y_train)
-        self.waveforms_test, self.X_test, self.y_test = self.shuffle_datapoints(waveforms_test, X_test, y_test)
+        # self.waveforms_train, self.X_train, self.y_train = self.shuffle_datapoints(waveforms_train, X_train, y_train)
+        # self.waveforms_test, self.X_test, self.y_test = self.shuffle_datapoints(waveforms_test, X_test, y_test)
+        
+        # zip train x and y
+        zipped_train = list(zip(self.X_train, self.y_train))
+        zipped_test = list(zip(self.X_test, self.y_test))
+        
+        self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True)
+        self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True)
     
     def extract_features(self, file: str):
         """
