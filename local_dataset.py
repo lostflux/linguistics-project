@@ -102,7 +102,12 @@ class AudioEmotionsDataset():
         
         for i in range(len(X_train)):
             m = nn.ZeroPad2d((0, max_len - X_train[i].shape[1]))
-            X_train[i] = m(X_train[i])
+            X_train[i] = m(X_train[i]).squeeze(0)
+            
+        for i in range(len(X_test)):
+            m = nn.ZeroPad2d((0, max_len - X_test[i].shape[1]))
+            X_test[i] = m(X_test[i]).squeeze(0)
+            
             
         # shuffle uniformly
         self.waveforms_train, self.X_train, self.y_train = waveforms_train, X_train, y_train
@@ -112,15 +117,15 @@ class AudioEmotionsDataset():
         zipped_train = list(zip(self.X_train, self.y_train))
         zipped_test = list(zip(self.X_test, self.y_test))
         
-        self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True)
-        self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True)
+        self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True, num_workers=11)
+        self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True, num_workers=11)
         
     @property
     def feature_count(self):
         """
             Get the number of features in the dataset.
         """
-        return self.X_train[0].shape[1]
+        return self.X_train[0].shape[0]
     
     @property
     def class_count(self):
@@ -187,7 +192,7 @@ class AudioEmotionsDataset():
             One-hot encode a single datapoint.
             (Maybe do this all at once for the entire dataset?)
         """
-        return F.one_hot(torch.tensor(y), num_classes=len(self.class_map))
+        return F.one_hot(torch.tensor(y), num_classes=len(self.class_map)).float()
 
     def len_train(self):
         """
