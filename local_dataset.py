@@ -117,8 +117,8 @@ class AudioEmotionsDataset():
         zipped_train = list(zip(self.X_train, self.y_train))
         zipped_test = list(zip(self.X_test, self.y_test))
         
-        self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True, num_workers=11)
-        self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True, num_workers=11)
+        self.train_dataloader = DataLoader(zipped_train, batch_size=batch_size, shuffle=True, num_workers=11, persistent_workers=True)
+        self.test_dataloader = DataLoader(zipped_test, batch_size=batch_size, shuffle=True, num_workers=11, persistent_workers=True)
         
     @property
     def feature_count(self):
