@@ -25,6 +25,8 @@ class AudioEmotionsDataset():
         self.tokenizer = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
         self.data_path = data_path if data_path is not None else "data/audio-emotions"
         self.train_split = train_split
+
+        self.load_count = 0
         
         # if path does not exist, download the dataset and extract
         if not os.path.exists(self.data_path):
@@ -177,29 +179,20 @@ class AudioEmotionsDataset():
             Loads audio from a given file path and extracts features using the MFCC algorithm.
         """
         
-        # NOTE: resample to 16kHz
-        waveform, sample_rate = librosa.load(file, sr=16000)
+        waveform, sample_rate = librosa.load(file, res_type='kaiser_fast')
+        # mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)
         
         #? extract features
-        features = librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=1024, n_fft=2048, hop_length=512)
+        features = librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=40)
 
-        features = torch.tensor(features)
+        norm_features = torch.mean(torch.tensor(features), axis=1)
 
-        m = nn.ZeroPad2d((0, 128 - features.shape[1]))
+        # print(f"{features.shape} -> {norm_features.shape}")
+
+        print(f"LOADED: {self.load_count+1}", end="\r")
+        self.load_count += 1
         
-        features = m(features)[:, :128]
-
-        # trim any excess to (128, 128)
-        features = features[:, :128]
-        features = torch.mean(features, axis=1)
-
-        # print(f"{features = }")
-
-        # print(f"{features.shape = }")
-        # features = features.unsqueeze(1)
-        # print(f"{features.shape = }")
-        
-        return waveform, features
+        return waveform, norm_features
     
     def shuffle_datapoints(self, waveforms, X, y):
         """
