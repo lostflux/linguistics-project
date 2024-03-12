@@ -109,15 +109,14 @@ class AudioEmotionsDataset():
         # print(f"{max_len = }")
 
         if feature_type != "mfcc":
-        
-            max_len = max([x.shape[1] for x in X_train + X_test])
+            max_len = max([x.shape[0] for x in X_train + X_test])
             for i in range(len(X_train)):
-                m = nn.ZeroPad2d((0, max_len - X_train[i].shape[1]))
-                X_train[i] = m(X_train[i])[:, :max_len]
+                m = nn.ZeroPad2d((0, max_len - X_train[i].shape[0]))
+                X_train[i] = m(X_train[i]) # [:, :max_len]
                 
             for i in range(len(X_test)):
-                m = nn.ZeroPad2d((0, max_len - X_test[i].shape[1]))
-                X_test[i] = m(X_test[i])[:, :max_len]
+                m = nn.ZeroPad2d((0, max_len - X_test[i].shape[0]))
+                X_test[i] = m(X_test[i]) # [:, :max_len]
             
             
         # shuffle uniformly
@@ -171,6 +170,11 @@ class AudioEmotionsDataset():
         
         #? extract features
         features = self.feature_extractor(waveform, sampling_rate=sample_rate, return_tensors="pt").input_values
+
+        # squeeze
+        # print(f"{features.shape = }")
+        features = torch.squeeze(features)
+        # print(f"{features.shape = }")
         
         return waveform, features
     
@@ -183,7 +187,7 @@ class AudioEmotionsDataset():
         # mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)
         
         #? extract features
-        features = librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=40)
+        features = librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=40, window="hamming")
 
         norm_features = torch.mean(torch.tensor(features), axis=1)
 

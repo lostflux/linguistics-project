@@ -167,3 +167,6 @@ data
 
 # lightning logs
 lightning_logs
+
+# model weights
+models
