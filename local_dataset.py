@@ -7,7 +7,7 @@ import random
 from glob import glob
 
 import torch
-import torchaudio
+# import torchaudio
 import torch.nn.functional as F
 import librosa
 
@@ -16,10 +16,10 @@ from torch.utils.data import DataLoader
 
 from transformers import AutoTokenizer, AutoFeatureExtractor, AutoModelForCTC, Wav2Vec2Processor
 
-from IPython.display import Audio, display, Markdown
+# from IPython.display import Audio, display, Markdown
 
 class AudioEmotionsDataset():
-    def __init__(self, data_path=None, train_split=0.8, batch_size=64, max_size=None):
+    def __init__(self, data_path=None, train_split=0.8, batch_size=64, max_size=None, feature_type=""):
         self.feature_extractor = AutoFeatureExtractor.from_pretrained("facebook/wav2vec2-base-960h")
         self.model = AutoModelForCTC.from_pretrained("facebook/wav2vec2-base-960h")
         self.tokenizer = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
@@ -35,13 +35,13 @@ class AudioEmotionsDataset():
                 """)
         
         metadata = {
-            "angry": sorted(glob(f"{self.data_path}/Angry/*.wav")),
-            "sad": sorted(glob(f"{self.data_path}/Sad/*.wav")),
-            "disgusted": sorted(glob(f"{self.data_path}/Disgusted/*.wav")),
-            "fearful": sorted(glob(f"{self.data_path}/Fearful/*.wav")),
-            "happy": sorted(glob(f"{self.data_path}/Happy/*.wav")),
-            "neutral": sorted(glob(f"{self.data_path}/Neutral/*.wav")),
-            "surprised": sorted(glob(f"{self.data_path}/Surprised/*.wav")),
+            "angry": glob(f"{self.data_path}/Angry/*.wav"),
+            "sad": glob(f"{self.data_path}/Sad/*.wav"),
+            "disgusted": glob(f"{self.data_path}/Disgusted/*.wav"),
+            "fearful": glob(f"{self.data_path}/Fearful/*.wav"),
+            "happy": glob(f"{self.data_path}/Happy/*.wav"),
+            "neutral": glob(f"{self.data_path}/Neutral/*.wav"),
+            "surprised": glob(f"{self.data_path}/Surprised/*.wav"),
         }
 
         train_meta = {
@@ -79,7 +79,7 @@ class AudioEmotionsDataset():
         
         for emotion in train_meta:
             for data_point in train_meta[emotion]:
-                waveform, features = self.extract_features(data_point)
+                waveform, features = self.extract_features(data_point, feature_type)
                 waveforms_train.append(waveform)
                 X_train.append(features)
                 
@@ -89,7 +89,7 @@ class AudioEmotionsDataset():
         waveforms_test, X_test, y_test = [], [], []
         for emotion in test_meta:
             for data_point in test_meta[emotion]:
-                waveform, features = self.extract_features(data_point)
+                waveform, features = self.extract_features(data_point, feature_type)
                 waveforms_test.append(waveform)
                 X_test.append(features)
                 
@@ -97,16 +97,25 @@ class AudioEmotionsDataset():
             
         # ZERO-PADDING
         # pad the features to the same length
-        max_len = max([x.shape[1] for x in X_train + X_test])
-        print(f"{max_len = }")
+        # min_len = min([x.shape[1] for x in X_train + X_test])
+
+        # max_width = max([x.shape[2] for x in X_train + X_test])
+        # min_width = min([x.shape[2] for x in X_train + X_test])
+        # print(f"{max_len, min_len = }")
+        # print(f"{max_width, min_width = }")
+        # max_len = 102_400
+        # print(f"{max_len = }")
+
+        if feature_type != "mfcc":
         
-        for i in range(len(X_train)):
-            m = nn.ZeroPad2d((0, max_len - X_train[i].shape[1]))
-            X_train[i] = m(X_train[i]).squeeze(0)
-            
-        for i in range(len(X_test)):
-            m = nn.ZeroPad2d((0, max_len - X_test[i].shape[1]))
-            X_test[i] = m(X_test[i]).squeeze(0)
+            max_len = max([x.shape[1] for x in X_train + X_test])
+            for i in range(len(X_train)):
+                m = nn.ZeroPad2d((0, max_len - X_train[i].shape[1]))
+                X_train[i] = m(X_train[i])[:, :max_len]
+                
+            for i in range(len(X_test)):
+                m = nn.ZeroPad2d((0, max_len - X_test[i].shape[1]))
+                X_test[i] = m(X_test[i])[:, :max_len]
             
             
         # shuffle uniformly
@@ -134,7 +143,21 @@ class AudioEmotionsDataset():
         """
         return len(self.class_map)
     
-    def extract_features(self, file: str):
+    def extract_features(self, file: str, feature_type):
+        """
+            Extract features from a given audio file.
+        """
+
+        if feature_type in ["", "wav2vec"]:
+            waveform, features = self.extract_wav2vec_features(file)
+        elif feature_type == "mfcc":
+            waveform, features = self.extract_mfcc_features(file)
+        else:
+            raise Exception(f"Invalid feature type: {feature_type}")
+        
+        return waveform, features
+    
+    def extract_wav2vec_features(self, file: str):
         """
             Loads audio from a given file path and extracts features using the Wav2Vec2 model.
         """
@@ -146,6 +169,35 @@ class AudioEmotionsDataset():
         
         #? extract features
         features = self.feature_extractor(waveform, sampling_rate=sample_rate, return_tensors="pt").input_values
+        
+        return waveform, features
+    
+    def extract_mfcc_features(self, file: str):
+        """
+            Loads audio from a given file path and extracts features using the MFCC algorithm.
+        """
+        
+        # NOTE: resample to 16kHz
+        waveform, sample_rate = librosa.load(file, sr=16000)
+        
+        #? extract features
+        features = librosa.feature.mfcc(y=waveform, sr=sample_rate, n_mfcc=1024, n_fft=2048, hop_length=512)
+
+        features = torch.tensor(features)
+
+        m = nn.ZeroPad2d((0, 128 - features.shape[1]))
+        
+        features = m(features)[:, :128]
+
+        # trim any excess to (128, 128)
+        features = features[:, :128]
+        features = torch.mean(features, axis=1)
+
+        # print(f"{features = }")
+
+        # print(f"{features.shape = }")
+        # features = features.unsqueeze(1)
+        # print(f"{features.shape = }")
         
         return waveform, features
     
