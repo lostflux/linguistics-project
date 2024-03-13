@@ -1,0 +1,59 @@
+\author{
+  \Large{Carlos Guerrero Alvarez},
+  \Large{Amittai Siavava},
+  \Large{Aiwei Zhang}
+}
+% \author{\Large{Carlos Guerrero Alvarez}},
+% \author{\Large{Amittai Siavava}}
+% \author{\Large{Aiwei Zhang }}
+\documentclass[10pt, reqno]{amsart}
+
+\input{~/latex-common/macros}
+\usepackage[backend=bibtex,style=numeric]{biblatex}
+\usepackage{pdfpages}
+\bibliography{main.bib}
+\pgfplotsset{compat=1.18}
+
+% make \url blue
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=blue}
+
+\pagestyle{fancy}                         % fancy (allow headers, footers)
+\fancyhf{}                                % clear all header/footer settings.
+\cfoot{\thepage}                          % set page-numbers in footer.
+% \lhead{\textit{\textbf{ Amittai, S}}}   % set name in header, left.
+% \rhead{\textsc{Math 71: Algebra}}       % set class name in header, right.
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\theenumi}{\alph{enumi}}
+\lstset{language=python,keywordstyle={\bfseries \color{blue}}}
+
+\begin{document}
+
+\setlength{\headheight}{13.0pt}
+\setlength{\footskip}{15.0pt}
+
+\input{cover}
+\bigskip
+
+% One of the reasons we chose to work together on this project was because
+% we had all worked with one another at some capacity in other classes
+% and in the Robotics club. We knew that we could work well together and
+% that we could trust each other to get the work done.
+% At the start of the project, we decided to periodically
+% spend time working together (aka `mini-hackathons')
+% instead of splitting up the work and assigning each team member
+% a specific task.
+
+% We think this helped because debugging issues with out code,
+% such us the issues we ran into with \verb|Wav2Vec|, were much
+% more manageable with our combined input as opposed to each
+% of us single-handedly trying to work it out.
+% It was also a great chance to learn some more team-working skills
+% and pick the best of each other's brains and coding abilities.
+
+% Each component of our project --- data pre-processing, models, training,
+% evaluation, writing the report, and creating the presentation ---
+% had input from all three of us.
+
+\end{document}
